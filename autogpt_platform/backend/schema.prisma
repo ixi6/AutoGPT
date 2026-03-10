@@ -1313,6 +1313,8 @@ model OAuthRefreshToken {
 enum LlmCostUnit {
   RUN
   TOKENS
+
+  @@schema("platform")
 }
 
 model LlmProvider {
