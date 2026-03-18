@@ -81,6 +81,7 @@ from .tool_adapter import (
     create_copilot_mcp_server,
     get_copilot_tool_names,
     get_sdk_disallowed_tools,
+    pre_launch_tool_call,
     set_execution_context,
     wait_for_stash,
 )
@@ -1167,6 +1168,17 @@ async def stream_chat_completion_sdk(
                                 code="transient_api_error",
                             )
                             break
+
+                    # Parallel tool execution: when the SDK sends an
+                    # AssistantMessage containing ToolUseBlocks, pre-launch
+                    # all tool executions as asyncio.Tasks immediately.
+                    # The MCP handlers will await the already-running tasks
+                    # instead of executing fresh, making all tools in a
+                    # single assistant turn run concurrently.
+                    if isinstance(sdk_msg, AssistantMessage):
+                        for block in sdk_msg.content:
+                            if isinstance(block, ToolUseBlock):
+                                await pre_launch_tool_call(block.name, block.input)
 
                     # Race-condition fix: SDK hooks (PostToolUse) are
                     # executed asynchronously via start_soon() — the next
