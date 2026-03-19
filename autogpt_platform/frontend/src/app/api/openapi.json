@@ -8285,7 +8285,8 @@
               { "type": "null" }
             ],
             "title": "Source"
-          }
+          },
+          "dry_run": { "type": "boolean", "title": "Dry Run", "default": false }
         },
         "type": "object",
         "title": "Body_postV1Execute graph agent"
@@ -9411,6 +9412,11 @@
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Share Token"
           },
+          "is_dry_run": {
+            "type": "boolean",
+            "title": "Is Dry Run",
+            "default": false
+          },
           "stats": {
             "anyOf": [
               { "$ref": "#/components/schemas/Stats" },
@@ -9556,6 +9562,11 @@
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Share Token"
           },
+          "is_dry_run": {
+            "type": "boolean",
+            "title": "Is Dry Run",
+            "default": false
+          },
           "stats": {
             "anyOf": [
               { "$ref": "#/components/schemas/Stats" },
@@ -9643,6 +9654,11 @@
           "share_token": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Share Token"
+          },
+          "is_dry_run": {
+            "type": "boolean",
+            "title": "Is Dry Run",
+            "default": false
           },
           "stats": {
             "anyOf": [
