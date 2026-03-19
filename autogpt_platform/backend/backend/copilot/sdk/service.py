@@ -1212,11 +1212,7 @@ async def _run_stream_attempt(
                 and isinstance(sdk_msg, (AssistantMessage, ResultMessage))
                 and not is_parallel_continuation
             ):
-                # 2.0 s timeout: the original 0.5 s caused frequent
-                # timeouts under load (parallel tool calls, large
-                # outputs).  2.0 s gives margin while still failing
-                # fast when the hook genuinely will not fire.
-                if await wait_for_stash(timeout=2.0):
+                if await wait_for_stash():
                     await asyncio.sleep(0)
                 else:
                     logger.warning(
