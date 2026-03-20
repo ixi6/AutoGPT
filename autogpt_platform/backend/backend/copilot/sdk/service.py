@@ -106,6 +106,19 @@ config = ChatConfig()
 # Non-context errors (network, auth, rate-limit) are NOT retried.
 _MAX_STREAM_ATTEMPTS = 3
 
+# Hard circuit breaker: abort the stream if the model sends this many
+# consecutive tool calls with empty parameters (a sign of context
+# saturation or serialization failure).
+_EMPTY_TOOL_CALL_LIMIT = 6
+
+# User-facing error shown when the empty-tool-call circuit breaker trips.
+_CIRCUIT_BREAKER_ERROR_MSG = (
+    "AutoPilot was unable to complete the tool call "
+    "— this usually happens when the response is "
+    "too large to fit in a single tool call. "
+    "Try breaking your request into smaller parts."
+)
+
 # Patterns that indicate the prompt/request exceeds the model's context limit.
 # Matched case-insensitively against the full exception chain.
 _PROMPT_TOO_LONG_PATTERNS: tuple[str, ...] = (
@@ -1072,10 +1085,6 @@ async def _run_stream_attempt(
     )
     ended_with_stream_error = False
 
-    # Hard circuit breaker: abort the stream if the model sends too many
-    # consecutive tool calls with empty parameters (a sign of context
-    # saturation or serialization failure).
-    _EMPTY_TOOL_CALL_LIMIT = 6
     consecutive_empty_tool_calls = 0
 
     async with ClaudeSDKClient(options=state.options) as client:
@@ -1303,27 +1312,18 @@ async def _run_stream_attempt(
                         )
                         _append_error_marker(
                             ctx.session,
-                            (
-                                "AutoPilot was unable to complete the tool call "
-                                "— this usually happens when the response is "
-                                "too large to fit in a single tool call. "
-                                "Try breaking your request into smaller parts."
-                            ),
+                            _CIRCUIT_BREAKER_ERROR_MSG,
                             retryable=True,
                         )
                         yield StreamError(
-                            errorText=(
-                                "AutoPilot was unable to complete the tool "
-                                "call — this usually happens when the response "
-                                "is too large to fit in a single tool call. "
-                                "Try breaking your request into smaller parts."
-                            ),
+                            errorText=_CIRCUIT_BREAKER_ERROR_MSG,
                             code="circuit_breaker_empty_tool_calls",
                         )
                         ended_with_stream_error = True
                         break
                 else:
-                    # Reset counter on a normal (non-empty) tool call or text
+                    # Reset on any non-empty-tool AssistantMessage (including
+                    # text-only messages — any() over empty content is False).
                     consecutive_empty_tool_calls = 0
 
             # --- Dispatch adapter responses ---
